@@ -1,0 +1,659 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Cell Tower Network System</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            background: linear-gradient(135deg, #0a0e27 0%, #1a1a2e 50%, #16213e 100%);
+            font-family: 'Courier New', monospace;
+            color: #0ff;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        #container {
+            position: relative;
+            width: 100%;
+            height: 100%;
+        }
+
+        #canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+        }
+
+        .tower {
+            position: absolute;
+            width: 80px;
+            height: 120px;
+            cursor: pointer;
+            transition: transform 0.3s;
+        }
+
+        .tower:hover {
+            transform: scale(1.1);
+        }
+
+        .tower-icon {
+            font-size: 60px;
+            text-align: center;
+            filter: drop-shadow(0 0 10px #0ff);
+        }
+
+        .tower-label {
+            text-align: center;
+            font-size: 12px;
+            color: #0ff;
+            margin-top: 5px;
+            text-shadow: 0 0 10px #0ff;
+        }
+
+        .tower.active .tower-icon {
+            animation: pulse 1s infinite;
+            filter: drop-shadow(0 0 20px #0f0);
+        }
+
+        .tower.hacked .tower-icon {
+            filter: drop-shadow(0 0 20px #f00);
+            color: #f00;
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.2); }
+        }
+
+        .phone {
+            position: absolute;
+            width: 50px;
+            height: 70px;
+            font-size: 40px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.5s;
+            filter: drop-shadow(0 0 10px #fff);
+        }
+
+        .phone.connected {
+            animation: phoneGlow 1s infinite;
+        }
+
+        @keyframes phoneGlow {
+            0%, 100% { filter: drop-shadow(0 0 10px #0f0); }
+            50% { filter: drop-shadow(0 0 30px #0f0); }
+        }
+
+        .phone.intercepted {
+            filter: drop-shadow(0 0 20px #f00);
+            animation: shake 0.5s infinite;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translate(0, 0); }
+            25% { transform: translate(-2px, 2px); }
+            50% { transform: translate(2px, -2px); }
+            75% { transform: translate(-2px, -2px); }
+        }
+
+        #control-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #0ff;
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 300px;
+            box-shadow: 0 0 20px #0ff;
+        }
+
+        #control-panel h2 {
+            color: #0ff;
+            margin-bottom: 15px;
+            text-align: center;
+            font-size: 24px;
+            text-shadow: 0 0 10px #0ff;
+        }
+
+        .stat {
+            display: flex;
+            justify-content: space-between;
+            margin: 10px 0;
+            font-size: 14px;
+        }
+
+        .stat-label {
+            color: #0ff;
+        }
+
+        .stat-value {
+            color: #0f0;
+            font-weight: bold;
+        }
+
+        .button {
+            background: linear-gradient(135deg, #0ff, #00a8cc);
+            border: none;
+            color: #000;
+            padding: 12px 24px;
+            margin: 10px 5px;
+            cursor: pointer;
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+            font-weight: bold;
+            border-radius: 5px;
+            transition: all 0.3s;
+            box-shadow: 0 0 10px #0ff;
+        }
+
+        .button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 20px #0ff;
+        }
+
+        .button:disabled {
+            background: #333;
+            color: #666;
+            cursor: not-allowed;
+            box-shadow: none;
+        }
+
+        .button.danger {
+            background: linear-gradient(135deg, #f00, #c00);
+            box-shadow: 0 0 10px #f00;
+        }
+
+        .button.danger:hover {
+            box-shadow: 0 0 20px #f00;
+        }
+
+        #log-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.9);
+            border: 2px solid #0ff;
+            padding: 15px;
+            border-radius: 10px;
+            max-height: 150px;
+            overflow-y: auto;
+            box-shadow: 0 0 20px #0ff;
+        }
+
+        .log-entry {
+            margin: 5px 0;
+            font-size: 12px;
+            padding: 3px 5px;
+            border-left: 3px solid;
+            animation: slideIn 0.3s;
+        }
+
+        @keyframes slideIn {
+            from { transform: translateX(-20px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+
+        .log-info {
+            border-left-color: #0ff;
+            color: #0ff;
+        }
+
+        .log-success {
+            border-left-color: #0f0;
+            color: #0f0;
+        }
+
+        .log-warning {
+            border-left-color: #ff0;
+            color: #ff0;
+        }
+
+        .log-error {
+            border-left-color: #f00;
+            color: #f00;
+        }
+
+        #status-panel {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            background: rgba(0, 0, 0, 0.8);
+            border: 2px solid #0ff;
+            padding: 20px;
+            border-radius: 10px;
+            min-width: 250px;
+            box-shadow: 0 0 20px #0ff;
+        }
+
+        #status-panel h3 {
+            color: #0ff;
+            margin-bottom: 10px;
+            text-align: center;
+            font-size: 18px;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 20px;
+            background: #222;
+            border: 1px solid #0ff;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #0ff, #0f0);
+            width: 0%;
+            transition: width 0.3s;
+            box-shadow: 0 0 10px #0ff;
+        }
+
+        .signal-wave {
+            position: absolute;
+            border: 2px solid;
+            border-radius: 50%;
+            pointer-events: none;
+        }
+
+        @keyframes expand {
+            from {
+                transform: scale(0);
+                opacity: 1;
+            }
+            to {
+                transform: scale(3);
+                opacity: 0;
+            }
+        }
+
+        #data-viz {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            width: 300px;
+            height: 300px;
+            display: none;
+        }
+
+        #data-viz.active {
+            display: block;
+        }
+
+        .data-packet {
+            position: absolute;
+            width: 10px;
+            height: 10px;
+            background: #0f0;
+            border-radius: 50%;
+            box-shadow: 0 0 10px #0f0;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #0ff;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div id="container">
+        <canvas id="canvas"></canvas>
+
+        <div id="control-panel">
+            <h2>🗼 NETWORK CONTROL</h2>
+            <div class="stat">
+                <span class="stat-label">Towers Online:</span>
+                <span class="stat-value" id="towers-count">0/0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Phones Tracked:</span>
+                <span class="stat-value" id="phones-count">0</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Data Intercepted:</span>
+                <span class="stat-value" id="data-count">0 MB</span>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Network Status:</span>
+                <span class="stat-value" id="network-status">Idle</span>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="button" id="connect-btn">CONNECT TOWERS</button>
+                <button class="button danger" id="intercept-btn" disabled>INTERCEPT DATA</button>
+            </div>
+        </div>
+
+        <div id="status-panel">
+            <h3>📡 OPERATION STATUS</h3>
+            <div class="stat">
+                <span class="stat-label">Signal Strength:</span>
+                <span class="stat-value" id="signal-strength">0%</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="signal-bar"></div>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Encryption:</span>
+                <span class="stat-value" id="encryption">Bypassing...</span>
+            </div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="encryption-bar"></div>
+            </div>
+            <div class="stat">
+                <span class="stat-label">Active Connections:</span>
+                <span class="stat-value" id="active-connections">0</span>
+            </div>
+        </div>
+
+        <div id="log-panel"></div>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        canvas.width = window.innerWidth;
+        canvas.height = window.innerHeight;
+
+        const towers = [];
+        const phones = [];
+        const connections = [];
+        let isConnecting = false;
+        let isIntercepting = false;
+        let dataIntercepted = 0;
+        let activeConnections = 0;
+
+        // Create towers
+        const towerPositions = [
+            { x: 200, y: 150 },
+            { x: window.innerWidth - 200, y: 150 },
+            { x: 200, y: window.innerHeight - 250 },
+            { x: window.innerWidth - 200, y: window.innerHeight - 250 },
+            { x: window.innerWidth / 2, y: 150 },
+            { x: window.innerWidth / 2, y: window.innerHeight - 250 }
+        ];
+
+        towerPositions.forEach((pos, index) => {
+            const tower = document.createElement('div');
+            tower.className = 'tower';
+            tower.style.left = pos.x + 'px';
+            tower.style.top = pos.y + 'px';
+            tower.innerHTML = `
+                <div class="tower-icon">📡</div>
+                <div class="tower-label">TOWER-${index + 1}</div>
+            `;
+            document.getElementById('container').appendChild(tower);
+            towers.push({ element: tower, x: pos.x + 40, y: pos.y + 60, active: false, id: index + 1 });
+        });
+
+        // Create phones
+        function createPhones() {
+            for (let i = 0; i < 8; i++) {
+                const phone = document.createElement('div');
+                phone.className = 'phone';
+                const x = Math.random() * (window.innerWidth - 100) + 50;
+                const y = Math.random() * (window.innerHeight - 300) + 200;
+                phone.style.left = x + 'px';
+                phone.style.top = y + 'px';
+                phone.innerHTML = '📱';
+                document.getElementById('container').appendChild(phone);
+                phones.push({
+                    element: phone,
+                    x: x + 25,
+                    y: y + 35,
+                    vx: (Math.random() - 0.5) * 0.5,
+                    vy: (Math.random() - 0.5) * 0.5,
+                    connected: false,
+                    intercepted: false
+                });
+            }
+        }
+
+        createPhones();
+
+        // Logging
+        function addLog(message, type = 'info') {
+            const logPanel = document.getElementById('log-panel');
+            const entry = document.createElement('div');
+            entry.className = `log-entry log-${type}`;
+            const time = new Date().toLocaleTimeString();
+            entry.textContent = `[${time}] ${message}`;
+            logPanel.insertBefore(entry, logPanel.firstChild);
+            
+            if (logPanel.children.length > 20) {
+                logPanel.removeChild(logPanel.lastChild);
+            }
+        }
+
+        // Draw connections
+        function drawConnections() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            connections.forEach(conn => {
+                ctx.strokeStyle = conn.active ? '#0f0' : '#0ff';
+                ctx.lineWidth = conn.active ? 3 : 1;
+                ctx.globalAlpha = conn.active ? 0.8 : 0.3;
+                
+                ctx.beginPath();
+                ctx.moveTo(conn.x1, conn.y1);
+                ctx.lineTo(conn.x2, conn.y2);
+                ctx.stroke();
+                
+                if (conn.active && Math.random() > 0.7) {
+                    const midX = (conn.x1 + conn.x2) / 2;
+                    const midY = (conn.y1 + conn.y2) / 2;
+                    
+                    ctx.fillStyle = '#0f0';
+                    ctx.beginPath();
+                    ctx.arc(midX + (Math.random() - 0.5) * 50, midY + (Math.random() - 0.5) * 50, 3, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+            });
+            
+            ctx.globalAlpha = 1;
+        }
+
+        // Animate phones
+        function animatePhones() {
+            phones.forEach(phone => {
+                phone.x += phone.vx;
+                phone.y += phone.vy;
+                
+                if (phone.x < 50 || phone.x > window.innerWidth - 50) phone.vx *= -1;
+                if (phone.y < 200 || phone.y > window.innerHeight - 200) phone.vy *= -1;
+                
+                phone.element.style.left = (phone.x - 25) + 'px';
+                phone.element.style.top = (phone.y - 35) + 'px';
+            });
+        }
+
+        // Connect towers
+        document.getElementById('connect-btn').addEventListener('click', async () => {
+            if (isConnecting) return;
+            isConnecting = true;
+            
+            document.getElementById('connect-btn').disabled = true;
+            document.getElementById('network-status').textContent = 'Connecting...';
+            
+            addLog('Initializing tower network connection...', 'info');
+            
+            for (let i = 0; i < towers.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+                towers[i].active = true;
+                towers[i].element.classList.add('active');
+                addLog(`TOWER-${towers[i].id} online - Signal established`, 'success');
+                
+                // Create signal wave effect
+                const wave = document.createElement('div');
+                wave.className = 'signal-wave';
+                wave.style.left = towers[i].x + 'px';
+                wave.style.top = towers[i].y + 'px';
+                wave.style.borderColor = '#0f0';
+                wave.style.animation = 'expand 1s ease-out';
+                document.getElementById('container').appendChild(wave);
+                setTimeout(() => wave.remove(), 1000);
+                
+                document.getElementById('towers-count').textContent = `${i + 1}/${towers.length}`;
+            }
+            
+            // Connect towers to each other
+            for (let i = 0; i < towers.length; i++) {
+                for (let j = i + 1; j < towers.length; j++) {
+                    connections.push({
+                        x1: towers[i].x,
+                        y1: towers[i].y,
+                        x2: towers[j].x,
+                        y2: towers[j].y,
+                        active: false
+                    });
+                }
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 500));
+            
+            // Connect phones to towers
+            phones.forEach((phone, index) => {
+                setTimeout(() => {
+                    const nearestTower = towers[Math.floor(Math.random() * towers.length)];
+                    connections.push({
+                        x1: nearestTower.x,
+                        y1: nearestTower.y,
+                        x2: phone.x,
+                        y2: phone.y,
+                        active: true,
+                        phone: phone
+                    });
+                    phone.connected = true;
+                    phone.element.classList.add('connected');
+                    addLog(`Phone #${index + 1} connected to network`, 'success');
+                    activeConnections++;
+                    document.getElementById('active-connections').textContent = activeConnections;
+                }, index * 300);
+            });
+            
+            await new Promise(resolve => setTimeout(resolve, phones.length * 300 + 500));
+            
+            document.getElementById('network-status').textContent = 'Online';
+            document.getElementById('phones-count').textContent = phones.length;
+            document.getElementById('intercept-btn').disabled = false;
+            
+            addLog('Network fully operational - All systems online', 'success');
+            
+            // Update signal strength
+            let signalProgress = 0;
+            const signalInterval = setInterval(() => {
+                signalProgress += 5;
+                document.getElementById('signal-bar').style.width = signalProgress + '%';
+                document.getElementById('signal-strength').textContent = signalProgress + '%';
+                if (signalProgress >= 100) clearInterval(signalInterval);
+            }, 50);
+        });
+
+        // Intercept data
+        document.getElementById('intercept-btn').addEventListener('click', async () => {
+            if (isIntercepting) return;
+            isIntercepting = true;
+            
+            document.getElementById('intercept-btn').disabled = true;
+            document.getElementById('network-status').textContent = 'Intercepting...';
+            
+            addLog('Initiating data interception protocol...', 'warning');
+            addLog('Bypassing encryption layers...', 'warning');
+            
+            // Encryption bypass animation
+            let encProgress = 0;
+            const encInterval = setInterval(() => {
+                encProgress += 2;
+                document.getElementById('encryption-bar').style.width = encProgress + '%';
+                if (encProgress >= 100) {
+                    clearInterval(encInterval);
+                    document.getElementById('encryption').textContent = 'Bypassed';
+                    addLog('Encryption successfully bypassed!', 'success');
+                }
+            }, 30);
+            
+            await new Promise(resolve => setTimeout(resolve, 2000));
+            
+            // Hack towers
+            for (let tower of towers) {
+                await new Promise(resolve => setTimeout(resolve, 300));
+                tower.element.classList.add('hacked');
+                addLog(`TOWER-${tower.id} compromised - Access granted`, 'error');
+            }
+            
+            // Intercept phones
+            for (let i = 0; i < phones.length; i++) {
+                await new Promise(resolve => setTimeout(resolve, 400));
+                phones[i].intercepted = true;
+                phones[i].element.classList.add('intercepted');
+                
+                const dataCaptured = Math.floor(Math.random() * 50) + 10;
+                dataIntercepted += dataCaptured;
+                
+                addLog(`Phone #${i + 1} intercepted - ${dataCaptured}MB captured`, 'error');
+                addLog(`  ├─ Contacts: ${Math.floor(Math.random() * 200) + 50}`, 'error');
+                addLog(`  ├─ Messages: ${Math.floor(Math.random() * 500) + 100}`, 'error');
+                addLog(`  └─ Location: ${Math.random().toFixed(6)}, ${Math.random().toFixed(6)}`, 'error');
+                
+                document.getElementById('data-count').textContent = dataIntercepted + ' MB';
+            }
+            
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            document.getElementById('network-status').textContent = 'COMPROMISED';
+            addLog('═══════════════════════════════════════', 'error');
+            addLog('ALL DEVICES SUCCESSFULLY INTERCEPTED', 'error');
+            addLog('DATA EXFILTRATION COMPLETE', 'error');
+            addLog('═══════════════════════════════════════', 'error');
+        });
+
+        // Animation loop
+        function animate() {
+            animatePhones();
+            
+            // Update phone connections
+            connections.forEach(conn => {
+                if (conn.phone) {
+                    conn.x2 = conn.phone.x;
+                    conn.y2 = conn.phone.y;
+                }
+            });
+            
+            drawConnections();
+            requestAnimationFrame(animate);
+        }
+
+        animate();
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        });
+
+        // Initial log
+        addLog('System initialized - Ready for operation', 'info');
+    </script>
+</body>
+</html>
